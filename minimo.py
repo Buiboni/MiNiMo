@@ -166,7 +166,7 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     parser = argparse.ArgumentParser()
     parser.add_argument('environmental_fluxes', 
-        help='File with environmental fluxes in HDF4 format (.nc), in s-1')
+        help='File with environmental fluxes in HDF4 format (.nc), temporal unit is second')
     parser.add_argument('niche_file', 
         help='File with the niche description in .ine (h-format), '
         'see lrslib for detail on the format. Unit of flux should be in molXX.gDW-1.h-1')
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         'corresponding to the niche fluxes.')
     parser.add_argument('carbon', 
         help='Carbon composition of the considered system in mole.' 
-        ' In a GSM this is the stoichiometry of C in the biomass reaction.')
+        ' In a GSM, this is the stoichiometry of C in the biomass reaction.')
 
     parser.add_argument('-d','--directory', 
         help='Directory where result will be written, if not provided '
