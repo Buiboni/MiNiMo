@@ -4,6 +4,7 @@ from sys import exit
 from os.path import isfile, join, split, splitext
 import argparse
 import netCDF4
+from fractions import Fraction
 import numpy as np
 import logging
 
@@ -37,16 +38,11 @@ def get_env(var,data):
     return np.hstack(env_list)
 
 def process_env_lrs(eq,env):
-
     eq_pos = eq[eq[:,-1]>0,:]
     eq_neg = eq[eq[:,-1]<0,:]
 
-    # Initialize max_bio and min_bio
-    max_bio = np.full((env.shape[0]), np.finfo(float).max)
-    min_bio = np.full((env.shape[0]), np.finfo(float).min)
-
     if eq_pos.shape[0]>30:
-        max_bio = np.full((env.shape[0]),np.finfo(float).max)
+        max_bio = np.full((env.shape[0]), np.finfo(float).max)
         for i in range(eq_pos.shape[0]):
             raw_bio = -((np.dot(eq_pos[i,1:-1],np.transpose(env)).transpose() \
                  + eq_pos[i,0])/eq_pos[i,-1]).transpose()
@@ -56,7 +52,6 @@ def process_env_lrs(eq,env):
             raw_bio = -((np.dot(eq_pos[:,1:-1],np.transpose(env)).transpose() \
                      + eq_pos[:,0])/eq_pos[:,-1]).transpose()
             max_bio = np.max(raw_bio, axis=0)
-            print('Got max')
         else:
             max_bio = None
 
@@ -67,18 +62,22 @@ def process_env_lrs(eq,env):
                  + eq_neg[i,0])/eq_neg[i,-1]).transpose()
             min_bio = np.minimum(min_bio,raw_bio)
     else:
-        raw_bio = -((np.dot(eq_neg[:,1:-1],np.transpose(env)).transpose() \
-                 + eq_neg[:,0])/eq_neg[:,-1]).transpose()
-        min_bio = np.min(raw_bio, axis=0)
+        if eq_neg.shape[0]>0:
+            raw_bio = -((np.dot(eq_neg[:,1:-1],np.transpose(env)).transpose() \
+                     + eq_neg[:,0])/eq_neg[:,-1]).transpose()
+            min_bio = np.min(raw_bio, axis=0)
+        else:
+            min_bio = None
     
     # test if max is < min
     # if max_bio != -1 and np.any(min_bio > max_bio):
     #     print('issue in computation')
-    if max_bio is not None:
-        print('verif this line')
-        bio = np.maximum(max_bio,min_bio)
-    else:
+    if max_bio is None:
         bio = min_bio
+    elif min_bio is None:
+        bio = max_bio
+    else:
+        bio = np.maximum(max_bio,min_bio)
 
     return bio
 
@@ -210,7 +209,7 @@ if __name__ == "__main__":
 
     # Read flux name file
     flux_file = args.flux_name
-    with open(filename,'r') as f:
+    with open(flux_file,'r') as f:
         fluxes = f.read().splitlines()
     for i in fluxes:
         try:
@@ -220,8 +219,8 @@ if __name__ == "__main__":
                 " in file " + filename_env)
 
     # check the size of the niche space with the number of line in the flux name file
-    if eq.shape[0] > len(fluxes) + 3:
-        logger.error("Niche dimension is " + str(eq.shape[0]) + 
+    if eq.shape[1] > len(fluxes) + 3:
+        logger.error("Niche dimension is " + str(eq.shape[1]-1) + 
             " while only " + str(len(fluxes)) + " fluxes are given. "
             "The fluxes in this file should be the same as the fluxes used "
             "for the niche computation.")
@@ -238,14 +237,14 @@ if __name__ == "__main__":
 
     # Get carbon composition
     c_bio = args.carbon
-    env *= 3600*c_bio
+    env *= 3600*int(c_bio)
 
     logger.info("Computing..")
     bio = process_env_lrs(p_eq, env)
 
     # write bio
     if args.directory is not None:
-        np.save(join(arg.directory,'growth.npy'),bio)
+        np.save(join(args.directory,'growth.npy'),bio)
 
     # If asked compute stress
     if args.stress:
@@ -254,7 +253,7 @@ if __name__ == "__main__":
         stress = bio_stress[fluxes.index(args.stress),:]
         # write stress
         if args.directory is not None:
-            np.save(join(arg.directory,'stress.npy'),stress)
+            np.save(join(args.directory,args.stress+'_stress.npy'),stress)
 
     # If asked compute auxiliary metabolite
     if args.aux is not None:
@@ -267,5 +266,5 @@ if __name__ == "__main__":
         # compute aux
         aux = process_env_lrs(aux_p_eq, aux_env)
         if args.directory is not None:
-            np.save(join(arg.directory,'auxiliary.npy'),aux)
+            np.save(join(args.directory,'auxiliary.npy'),aux)
 
