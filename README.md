@@ -1,5 +1,6 @@
 # MiNiMo
 Compute growth rates of an organism through its metabolic niche.
+One can compute the niche of an organism through its metabolic model with the script here: https://gitlab.univ-nantes.fr/aregimbeau/metabolic-niche. (associated paper: https://onlinelibrary.wiley.com/doi/10.1111/ele.13954)
 ## Environment
 To be able to run the script your environment need to have numpy and netCDF4 python packages.
 Numpy and netCDF4 are available through pip, or conda.
